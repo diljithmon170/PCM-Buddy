@@ -23,6 +23,7 @@ def chat_api(request):
         data = json.loads(request.body)
         user_message = data.get("message", "")
         subject = data.get("subject", "")
-        bot_reply = get_answer(user_message, subject)
+        marks = int(data.get("marks", 2))  # Default to 2 if not provided
+        bot_reply = get_answer(user_message, subject, marks)
         return JsonResponse({"reply": bot_reply})
     return JsonResponse({"reply": "Invalid request."}, status=400)

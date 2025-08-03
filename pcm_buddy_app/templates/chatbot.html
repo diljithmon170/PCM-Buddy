@@ -74,8 +74,15 @@
                 <div class="chat-bubble bot">Hi! I am your {{ subject }} assistant. How can I help you today?</div>
             </div>
             <form class="chat-input-area" id="chatForm" autocomplete="off" onsubmit="return false;">
-                <input type="text" class="form-control" id="userInput" placeholder="Type your question..." required>
-                <button type="submit" class="btn btn-primary">Send</button>
+                <input type="text" class="form-control" id="userInput" placeholder="Type your question..." required aria-label="Chat input" autofocus>
+                <select class="form-select" id="marksInput" style="max-width:100px;">
+                    <option value="1">1 Mark</option>
+                    <option value="2" selected>2 Marks</option>
+                    <option value="3">3 Marks</option>
+                    <option value="4">4 Marks</option>
+                    <option value="5">5 Marks</option>
+                </select>
+                <button type="submit" class="btn btn-primary" id="sendBtn">Send</button>
             </form>
         </div>
         <div class="text-center mt-4">
@@ -86,20 +93,21 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <script>
-        // Simple chat simulation (replace with real backend logic)
         const chatForm = document.getElementById('chatForm');
         const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const marksInput = document.getElementById('marksInput');
         chatForm.addEventListener('submit', function() {
-            const input = document.getElementById('userInput');
-            const msg = input.value.trim();
+            const msg = userInput.value.trim();
+            const marks = marksInput.value;
             if (!msg) return;
             // Add user message
             const userBubble = document.createElement('div');
             userBubble.className = 'chat-bubble user';
-            userBubble.textContent = msg;
+            userBubble.textContent = msg + ` (${marks} marks)`;
             chatMessages.appendChild(userBubble);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            input.value = '';
+            userInput.value = '';
             // Show "Generating..." bot message
             const botBubble = document.createElement('div');
             botBubble.className = 'chat-bubble bot';
@@ -114,12 +122,13 @@
                 },
                 body: JSON.stringify({
                     message: msg,
-                    subject: "{{ subject }}"
+                    subject: "{{ subject }}",
+                    marks: marks
                 })
             })
             .then(response => response.json())
             .then(data => {
-                botBubble.textContent = data.reply; // Replace "Generating..." with real answer
+                botBubble.textContent = data.reply;
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             })
             .catch(() => {
