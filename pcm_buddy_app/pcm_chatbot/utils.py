@@ -88,18 +88,26 @@ def generate_answer(query, context, subject, marks):
     context_text = "\n".join(context)
 
     word_count_map = {
-        1: 20, 2: 40, 3: 60, 4: 80, 5: 100,
+        1: 8,    # 5 to 10 words
+        2: 15,   # 10 to 20 words
+        3: 50,   # 40 to 60 words
+        5: 150,  # 150 words around
     }
     token_limit_map = {
-        1: 80, 2: 120, 3: 160, 4: 200, 5: 300,
+        1: 40,
+        2: 80,
+        3: 180,
+        5: 350,
     }
 
-    desired_words = word_count_map.get(marks, 50)
-    max_tokens = token_limit_map.get(marks, 150)
+    desired_words = word_count_map.get(marks, 15)
+    max_tokens = token_limit_map.get(marks, 80)
 
     prompt = f"""You are a helpful CBSE Class 10 {subject} tutor.
-Use the NCERT context to answer the following question simply and clearly.
-Keep the answer around {desired_words} words for a {marks}-mark question.
+Use the NCERT context to answer the following question simply, clearly, and completely.
+Write a meaningful answer of around {desired_words} words for a {marks}-mark question.
+If you need more words to complete the answer meaningfully, do so.
+Format your answer using points or short paragraphs for clarity.
 
 Context:
 {context_text}
@@ -122,7 +130,19 @@ Answer:"""
     )
 
     decoded = tokenizer.decode(output[0], skip_special_tokens=True)
-    return decoded.split("Answer:")[-1].strip()
+    answer = decoded.split("Answer:")[-1].strip()
+
+    # Add a newline after each period followed by a space (for sentences)
+    answer = answer.replace('. ', '.\n')
+
+    # Add an extra newline after every 2 sentences to simulate paragraphs
+    sentences = answer.split('\n')
+    paragraphs = []
+    for i in range(0, len(sentences), 2):
+        paragraphs.append('\n'.join(sentences[i:i+2]))
+    answer = '\n\n'.join(paragraphs)
+
+    return answer
 
 # -------------------------
 # Main Chat Loop
@@ -174,8 +194,7 @@ if __name__ == "__main__":
 # -------------------------
 # Get Answer Function
 # -------------------------
-def get_answer(query, subject, marks=2):
-    # ...existing code to select context...
+def get_answer(query, subject, marks=2, force_outside=False):
     if subject.lower() in ["physics", "chemistry", "science"]:
         context = retrieve_context(query, sci_texts, sci_embeds)
         subj = "Science"
@@ -184,4 +203,55 @@ def get_answer(query, subject, marks=2):
         subj = "Maths"
     else:
         return "Sorry, I can only answer Physics, Chemistry, or Maths questions."
-    return generate_answer(query, context, subj, marks)
+    
+    # If forced or no context, use outside knowledge
+    if force_outside or not context or all(not c.strip() for c in context):
+        context = []
+        prompt_note = (
+            "You do not have NCERT context for this question. "
+            "Use your own knowledge to answer as a CBSE Class 10 {subject} teacher would, "
+            "following the CBSE syllabus and answer style."
+        )
+        return generate_answer_with_note(query, context, subj, marks, prompt_note)
+    else:
+        return generate_answer(query, context, subj, marks)
+
+# Add this new function:
+def generate_answer_with_note(query, context, subject, marks, note):
+    context_text = "\n".join(context)
+    word_count_map = {
+        1: 8, 2: 15, 3: 50, 5: 150,
+    }
+    token_limit_map = {
+        1: 40, 2: 80, 3: 180, 5: 350,
+    }
+    desired_words = word_count_map.get(marks, 15)
+    max_tokens = token_limit_map.get(marks, 80)
+    prompt = f"""{note}
+Write a meaningful answer of around {desired_words} words for a {marks}-mark question.
+If you need more words to complete the answer meaningfully, do so.
+Format your answer using points or short paragraphs for clarity.
+
+Question: {query}
+
+Answer:"""
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(model.device)
+    output = model.generate(
+        **inputs,
+        max_new_tokens=max_tokens,
+        do_sample=True,
+        temperature=0.7,
+        top_k=50,
+        top_p=0.95,
+        pad_token_id=tokenizer.eos_token_id,
+        eos_token_id=tokenizer.eos_token_id,
+    )
+    decoded = tokenizer.decode(output[0], skip_special_tokens=True)
+    answer = decoded.split("Answer:")[-1].strip()
+    answer = answer.replace('. ', '.\n')
+    sentences = answer.split('\n')
+    paragraphs = []
+    for i in range(0, len(sentences), 2):
+        paragraphs.append('\n'.join(sentences[i:i+2]))
+    answer = '\n\n'.join(paragraphs)
+    return answer

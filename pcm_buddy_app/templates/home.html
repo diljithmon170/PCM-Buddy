@@ -34,6 +34,15 @@
     </style>
 </head>
 <body>
+    <!-- Login Button (top right) -->
+    <div class="position-absolute top-0 end-0 p-4" style="z-index: 10;">
+        {% if user %}
+            <span class="me-2 text-white fw-bold">Hello, {{ user.username }}</span>
+            <a href="{% url 'logout' %}" class="btn btn-danger btn-lg shadow">Logout</a>
+        {% else %}
+            <a href="{% url 'log_sig' %}" class="btn btn-primary btn-lg shadow">Login</a>
+        {% endif %}
+    </div>
     <div class="hero-section">
         <h1 class="display-4 fw-bold">Welcome to <span style="color: #ffd700;">PCM Buddy</span></h1>
         <p class="lead mt-3">Your AI-powered assistant for CBSE 10th Physics, Chemistry, and Maths.<br>
@@ -49,7 +58,7 @@
                         <img src="https://img.icons8.com/color/96/physics.png" alt="Physics" class="mb-3">
                         <h3 class="card-title">Physics</h3>
                         <p class="card-text">Understand concepts, solve problems, and get explanations for all Physics topics.</p>
-                        <a href="{% url 'chat_physics' %}" class="btn btn-outline-primary">Ask Physics</a>
+                        <a href="{% url 'chat_physics' %}" class="btn btn-outline-primary ask-btn">Ask Physics</a>
                     </div>
                 </div>
             </div>
@@ -59,7 +68,7 @@
                         <img src="https://img.icons8.com/color/96/000000/test-tube.png" alt="Chemistry" class="mb-3">
                         <h3 class="card-title">Chemistry</h3>
                         <p class="card-text">Clarify doubts, learn reactions, and master Chemistry with step-by-step guidance.</p>
-                        <a href="{% url 'chat_chemistry' %}" class="btn btn-outline-success">Ask Chemistry</a>
+                        <a href="{% url 'chat_chemistry' %}" class="btn btn-outline-success ask-btn">Ask Chemistry</a>
                     </div>
                 </div>
             </div>
@@ -69,7 +78,7 @@
                         <img src="https://img.icons8.com/color/96/calculator.png" alt="Maths" class="mb-3">
                         <h3 class="card-title">Maths</h3>
                         <p class="card-text">Solve equations, get hints, and practice Maths problems with instant solutions.</p>
-                        <a href="{% url 'chat_maths' %}" class="btn btn-outline-danger">Ask Maths</a>
+                        <a href="{% url 'chat_maths' %}" class="btn btn-outline-danger ask-btn">Ask Maths</a>
                     </div>
                 </div>
             </div>
@@ -82,5 +91,20 @@
 
     <!-- Bootstrap JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Use Django template variable to check login status
+        const isLoggedIn = {% if user %}true{% else %}false{% endif %};
+
+        document.querySelectorAll('.ask-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                if (!isLoggedIn) {
+                    e.preventDefault();
+                    // Show a message and link to login page
+                    alert("Please login or sign up to use the PCM Buddy chatbot.");
+                    window.location.href = "{% url 'log_sig' %}";
+                }
+            });
+        });
+    </script>
 </body>
 </html>
